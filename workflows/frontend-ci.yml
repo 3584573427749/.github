@@ -1,0 +1,53 @@
+name: Frontend CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # --- GENERERA TYPDEFINITIONER (.d.ts) FRÅN OPENAPI ---
+      - name: Generate DTO types (if openapi.yaml exists)
+        run: |
+          if [ -f openapi.yaml ]; then
+            npm install -g openapi-typescript
+            openapi-typescript openapi.yaml -o src/api/generated.d.ts
+          fi
+
+      # --- ESLINT ---
+      - name: Lint
+        run: npm run lint
+
+      # --- ENHETSTESTER (VITEST / JEST / MOCHA) ---
+      - name: Unit tests
+        run: npm run test
+
+      # --- BYGG ---
+      - name: Build for production
+        run: npm run build
+
+      # --- REQUIRE VERSION BUMP ---
+      - name: Require VERSION bump
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -q "src"; then
+            if ! git diff --name-only HEAD^ HEAD | grep -q "VERSION"; then
+              echo "::error::VERSION file must be updated when source files change."
+              exit 1
+            fi
+          fi
