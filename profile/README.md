@@ -32,8 +32,8 @@ Varje tjänst är helt isolerad och deployas i egen Docker‑container.
 - **gateway-service** – enda exponerade ingressen, JWT‑verifiering & routing  
 - **time-service** – tidrapporter, resor, traktamente, milersättning  
 - **group-service** – träningsgrupper, ledare & aktiva  
-- **results-service** *(kommande)* – atleter, resultat, historik  
-- **competition-service** *(kommande)* – tävlingar & anmälningar  
+- **results-service** *(kommande)* – aktiva , resultat, historik  
+- **entries-service** *(kommande)* – anmälningar till lokala tävlingar  
 
 ### Frontend
 - **admin-ui** – administrationsgränssnitt  
@@ -96,4 +96,67 @@ Alla repos använder samma centrala CI‑policy via `.github`‑organisationens 
 
 ---
 
-## 📦 Repositories
+## Repositories
+
+```
+
+backend/
+auth-service
+gateway-service
+time-service
+group-service
+results-service
+entries-service
+
+frontend/
+admin-ui
+main-ui
+pwa-trainer
+pwa-active
+entries-ui
+
+platform-docs/
+infrastructure/
+.github/   ← centrala templates/workflows
+
+```
+
+Alla repos är självständiga projekt med egen CI/CD, egen VERSION‑fil och egen releaseprocess.
+
+---
+
+## Roadmap
+
+| Etapp | Innehåll |
+|-------|----------|
+| **E1** | Auth‑service + Gateway + magic‑link login |
+| **E2** | Time‑service + Group‑service + Admin UI + PWA Trainer + Main UI |
+| **E3** | Results‑service + resultatvisning och statistik i MainUI |
+| **E4** | PWA Aktiva |
+| **E5** | Entries‑service + Entries UI |
+
+---
+
+## Licens
+
+Alla projekt är licensierade under:
+
+**MIT License**  
+Fri användning, modifiering och distribution.
+
+---
+
+## Bidra
+
+Se **CONTRIBUTING.md** för:
+- Branch‑policy  
+- PR‑rutiner  
+- Versionshantering  
+- Testkrav  
+- Kvalitetspipelines  
+
+PRs välkomnas! 
+
+---
+
+**Tack för att du är en del av plattformens utveckling!**
