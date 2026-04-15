@@ -1,0 +1,32 @@
+name: Frontend Base CI (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        type: string
+        default: '20'
+
+jobs:
+  lint-and-format:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check formatting (Prettier)
+        run: npm run format:check
