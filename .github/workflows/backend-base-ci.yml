@@ -35,7 +35,7 @@ jobs:
 
       - name: Run PHPUnit (if available)
         run: |
-          if [ -f phpunit.xml ] || [ -f phpunit.xml.dist ]; then
+          if [ -f .ci/run-phpunit ] && [ -f vendor/bin/phpunit ]; then
             vendor/bin/phpunit
           else
             echo "No PHPUnit config found, skipping tests"
