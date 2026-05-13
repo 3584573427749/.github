@@ -17,9 +17,19 @@ jobs:
 
       - name: Composer Install
         run: composer install --no-interaction --prefer-dist
-
+          if [ -f composer.json ]; then
+            composer install --no-interaction --prefer-dist
+          else
+            echo "No composer.json found, skipping."
+          fi
+      
       - name: Composer Audit
-        run: composer audit || true
+        run: |
+          if [ -f composer.json ]; then
+            composer audit || true
+          else
+            echo "No composer.json found, skipping."
+          fi
 
       - name: Node security audit (if package.json exists)
         run: |
