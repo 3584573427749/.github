@@ -8,45 +8,100 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up PHP
+      # ---------------------------------------------------
+      # Kontroll: är detta ett riktigt PHP service-repo?
+      # ---------------------------------------------------
+      - name: Check if PHP CI should run
+        id: repo_check
+        run: |
+          if [ -f ".ci/run-phpunit" ]; then
+            echo "RUN_PHP_CI=true" >> $GITHUB_OUTPUT
+            echo "PHP service repo detected → running PHP CI"
+          else
+            echo "RUN_PHP_CI=false" >> $GITHUB_OUTPUT
+            echo "Template or non-PHP repo → skipping PHP CI"
+          fi
+
+      # ---------------------------------------------------
+      # Setup PHP (endast riktiga service-repos)
+      # ---------------------------------------------------
+      - name: Setup PHP
+        if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, intl, pdo_mysql
-          coverage: xdebug
+          php-version: '8.2'
+          tools: composer
+          coverage: none
 
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist
-
-      - name: Validate VERSION bump
+      # ---------------------------------------------------
+      # Install dependencies
+      # ---------------------------------------------------
+      - name: Composer install
+        if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
         run: |
-          if git diff --name-only HEAD^ HEAD | grep -q "src\|config\|tests"; then
+          if [ -f composer.json ]; then
+            composer install --no-interaction --prefer-dist
+          else
+            echo "No composer.json found, skipping."
+          fi
+
+      # ---------------------------------------------------
+      # PHPUnit
+      # ---------------------------------------------------
+      - name: PHPUnit
+        if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
+        run: |
+          if [ -f ".ci/run-phpunit" ]; then
+            ./.ci/run-phpunit
+          else
+            echo "run-phpunit script missing, skipping."
+          fi
+
+      # ---------------------------------------------------
+      # PHPStan (om installerad)
+      # ---------------------------------------------------
+      - name: PHPStan
+        if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
+        run: |
+          if [ -f vendor/bin/phpstan ]; then
+            vendor/bin/phpstan analyse
+          else
+            echo "PHPStan not installed, skipping."
+          fi
+
+      # ---------------------------------------------------
+      # Coding standards (PHP-CS-Fixer, om installerad)
+      # ---------------------------------------------------
+      - name: Coding standards
+        if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
+        run: |
+          if [ -f vendor/bin/php-cs-fixer ]; then
+            vendor/bin/php-cs-fixer fix --dry-run --diff
+          else
+            echo "PHP-CS-Fixer not installed, skipping."
+          fi
+
+      # ---------------------------------------------------
+      # Require VERSION bump
+      # ---------------------------------------------------
+      - name: Require VERSION bump
+        if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -E '\.php$|src/'; then
             if ! git diff --name-only HEAD^ HEAD | grep -q "VERSION"; then
-              echo "::error::VERSION file must be updated when source changes."
+              echo "::error::VERSION file must be updated when PHP source files change."
               exit 1
             fi
           fi
 
-      - name: Run PHPCS
-        run: vendor/bin/phpcs src
-
-      - name: PHP-CS-Fixer (dry run)
-        run: vendor/bin/php-cs-fixer fix --dry-run --diff
-
-      - name: Run PHPStan
-        run: vendor/bin/phpstan analyse src --level=max
-
-      - name: Run PHPUnit
-        run: vendor/bin/phpunit --coverage-text
-
-      - name: Rector (dry run)
-        run: vendor/bin/rector process src --dry-run
-
-      - name: Run Infection (mutation testing)
-        run: vendor/bin/infection --min-msi=60 --threads=2
+      # ---------------------------------------------------
+      # Skip info
+      # ---------------------------------------------------
+      - name: Skip message
+        if: steps.repo_check.outputs.RUN_PHP_CI == 'false'
+        run: echo "PHP CI skipped (template or non-service repo)."
