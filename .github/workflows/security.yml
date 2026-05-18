@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
   schedule:
-    - cron: "0 3 * * *"  # dagligen kl 03:00
+    - cron: "0 3 * * *"
 
 jobs:
   security:
@@ -15,25 +15,66 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Composer Install
-        run: composer install --no-interaction --prefer-dist
-          if [ -f composer.json ]; then
-            composer install --no-interaction --prefer-dist
-          else
-            echo "No composer.json found, skipping."
-          fi
-      
-      - name: Composer Audit
+      # -----------------------------------------
+      # Identifiera repo-typ via .ci-flaggor
+      # -----------------------------------------
+      - name: Detect repo type
+        id: repo_type
         run: |
-          if [ -f composer.json ]; then
-            composer audit || true
+          if [ -f ".ci/run-phpunit" ]; then
+            echo "TYPE=php-service" >> $GITHUB_OUTPUT
+            echo "Detected PHP service repo"
+
+          elif [ -f ".ci/run-frontend-ci" ]; then
+            echo "TYPE=frontend" >> $GITHUB_OUTPUT
+            echo "Detected frontend repo"
+
           else
-            echo "No composer.json found, skipping."
+            echo "TYPE=none" >> $GITHUB_OUTPUT
+            echo "Template or unsupported repo → skipping"
           fi
 
-      - name: Node security audit (if package.json exists)
+      # -----------------------------------------
+      # PHP Backend → Composer audit
+      # -----------------------------------------
+      - name: Composer Install
+        if: steps.repo_type.outputs.TYPE == 'php-service'
+        run: |
+          if [ -f composer.json ]; then
+            composer install --no-interaction --prefer-dist
+          fi
+
+      - name: Composer Audit
+        if: steps.repo_type.outputs.TYPE == 'php-service'
+        run: |
+          if [ -f composer.json ]; then
+            echo "Running composer audit..."
+            composer audit || true
+          fi
+
+      # -----------------------------------------
+      # Frontend → npm audit
+      # -----------------------------------------
+      - name: Node security audit
+        if: steps.repo_type.outputs.TYPE == 'frontend'
         run: |
           if [ -f package.json ]; then
-            npm ci
+            echo "Running npm audit..."
+
+            if [ -f package-lock.json ]; then
+              npm ci || true
+            else
+              npm install || true
+            fi
+
             npm audit --audit-level=moderate || true
+          else
+            echo "No package.json found, skipping."
           fi
+
+      # -----------------------------------------
+      # Skip info
+      # -----------------------------------------
+      - name: Skip message
+        if: steps.repo_type.outputs.TYPE == 'none'
+        run: echo "Security scan skipped (template repo)."
