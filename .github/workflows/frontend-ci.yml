@@ -13,37 +13,81 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ---------------------------------------------------
+      # Kontroll: är detta ett riktigt frontend-repo?
+      # ---------------------------------------------------
+      - name: Check if frontend CI should run
+        id: repo_check
+        run: |
+          if [ -f ".ci/run-frontend-ci" ]; then
+            echo "RUN_FRONTEND_CI=true" >> $GITHUB_OUTPUT
+            echo "Frontend repo detected → running frontend CI"
+          else
+            echo "RUN_FRONTEND_CI=false" >> $GITHUB_OUTPUT
+            echo "Template or non-frontend repo → skipping frontend CI"
+          fi
+
+      # ---------------------------------------------------
+      # Setup Node (endast riktiga frontend-repos)
+      # ---------------------------------------------------
       - name: Setup Node
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: "npm"
 
+      # ---------------------------------------------------
+      # Install dependencies
+      # ---------------------------------------------------
       - name: Install dependencies
-        run: npm ci
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'true'
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
-      # --- GENERERA TYPDEFINITIONER (.d.ts) FRÅN OPENAPI ---
+      # ---------------------------------------------------
+      # Generera DTO-typer från OpenAPI (om openapi.yaml finns)
+      # ---------------------------------------------------
       - name: Generate DTO types (if openapi.yaml exists)
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'true'
         run: |
           if [ -f openapi.yaml ]; then
             npm install -g openapi-typescript
             openapi-typescript openapi.yaml -o src/api/generated.d.ts
+          else
+            echo "No openapi.yaml found, skipping DTO generation."
           fi
 
-      # --- ESLINT ---
+      # ---------------------------------------------------
+      # ESLint
+      # ---------------------------------------------------
       - name: Lint
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'true'
         run: npm run lint
 
-      # --- ENHETSTESTER (VITEST / JEST / MOCHA) ---
+      # ---------------------------------------------------
+      # Enhetstester
+      # ---------------------------------------------------
       - name: Unit tests
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'true'
         run: npm run test
 
-      # --- BYGG ---
+      # ---------------------------------------------------
+      # Build
+      # ---------------------------------------------------
       - name: Build for production
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'true'
         run: npm run build
 
-      # --- REQUIRE VERSION BUMP ---
+      # ---------------------------------------------------
+      # Require VERSION bump
+      # ---------------------------------------------------
       - name: Require VERSION bump
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'true'
         run: |
           if git diff --name-only HEAD^ HEAD | grep -q "src"; then
             if ! git diff --name-only HEAD^ HEAD | grep -q "VERSION"; then
@@ -51,3 +95,10 @@ jobs:
               exit 1
             fi
           fi
+
+      # ---------------------------------------------------
+      # Skip info
+      # ---------------------------------------------------
+      - name: Skip message
+        if: steps.repo_check.outputs.RUN_FRONTEND_CI == 'false'
+        run: echo "Frontend CI skipped (template or non-frontend repo)."
