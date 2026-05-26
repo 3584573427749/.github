@@ -1,12 +1,8 @@
 name: Security Scan
 
 on:
-  pull_request:
-  push:
-    branches: [ main ]
-  schedule:
-    - cron: "0 3 * * *"
-
+  workflow_call: 
+  
 jobs:
   security:
     runs-on: ubuntu-latest
@@ -37,24 +33,53 @@ jobs:
       # -----------------------------------------
       # PHP Backend → Composer audit
       # -----------------------------------------
-      - name: Composer Install
+      - name: Setup PHP
+        if: steps.repo_type.outputs.TYPE == 'php-service'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+          coverage: none
+      
+      - name: Install PHP dependencies
         if: steps.repo_type.outputs.TYPE == 'php-service'
         run: |
           if [ -f composer.json ]; then
             composer install --no-interaction --prefer-dist
+          else
+            echo "No composer.json found, skipping."
           fi
-
+  
       - name: Composer Audit
         if: steps.repo_type.outputs.TYPE == 'php-service'
         run: |
           if [ -f composer.json ]; then
             echo "Running composer audit..."
-            composer audit 
+            composer audit
           fi
 
       # -----------------------------------------
       # Frontend → npm audit
       # -----------------------------------------
+      - name: Setup Node.js
+        if: steps.repo_type.outputs.TYPE == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install frontend dependencies
+        if: steps.repo_type.outputs.TYPE == 'frontend'
+        run: |
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+          else
+            echo "No package.json found, skipping."
+          fi
+      
       - name: Node security audit
         if: steps.repo_type.outputs.TYPE == 'frontend'
         run: |
@@ -62,9 +87,9 @@ jobs:
             echo "Running npm audit..."
 
             if [ -f package-lock.json ]; then
-              npm ci
+              npm ci || true
             else
-              npm install
+              npm install || true
             fi
 
             npm audit --audit-level=high
