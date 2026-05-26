@@ -19,7 +19,7 @@ jobs:
       - name: Check if frontend CI should run
         id: repo_check
         run: |
-          if [ -f ".ci/run-frontend-ci" ]; then
+          if [ -f ".ci/frontend" ]; then
             echo "RUN_FRONTEND_CI=true" >> $GITHUB_OUTPUT
             echo "Frontend repo detected → running frontend CI"
           else
