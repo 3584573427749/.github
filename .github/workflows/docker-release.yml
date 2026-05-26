@@ -20,15 +20,15 @@ jobs:
         id: repo_check
         run: |
           if [ -f ".ci/run-phpunit" ]; then
-            echo "TYPE=backend" >> $GITHUB_OUTPUT
+            echo "RUN_DOCKER_RELEASE=true" >> $GITHUB_OUTPUT
             echo "Detected backend repo"
 
           elif [ -f ".ci/run-frontend-ci" ]; then
-            echo "TYPE=frontend" >> $GITHUB_OUTPUT
+            echo "RUN_DOCKER_RELEASE=true" >> $GITHUB_OUTPUT
             echo "Detected frontend repo"
 
           else
-            echo "TYPE=none" >> $GITHUB_OUTPUT
+            echo "RUN_DOCKER_RELEASE=false" >> $GITHUB_OUTPUT
             echo "Template or unsupported repo → skipping Docker release"
           fi
 
@@ -36,14 +36,14 @@ jobs:
       # Skip
       # ---------------------------------------------------
       - name: Skip Docker release
-        if: steps.repo_check.outputs.TYPE == 'none'
-        run: echo "Docker release skipped (template repo)."
+        if: steps.repo_check.outputs.RUN_DOCKER_RELEASE == 'false'
+        run: echo "Docker release skipped (template or unsupported repo)."
 
       # ---------------------------------------------------
       # VERSION
       # ---------------------------------------------------
       - name: Read VERSION
-        if: steps.repo_check.outputs.TYPE != 'none'
+        if: steps.repo_check.outputs.RUN_DOCKER_RELEASE == 'true'
         id: version
         run: |
           if [ ! -f VERSION ]; then
@@ -56,11 +56,11 @@ jobs:
       # Setup Docker
       # ---------------------------------------------------
       - name: Set up Docker Buildx
-        if: steps.repo_check.outputs.TYPE != 'none'
+        if: steps.repo_check.outputs.RUN_DOCKER_RELEASE == 'true'
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
-        if: steps.repo_check.outputs.TYPE != 'none'
+        if: steps.repo_check.outputs.RUN_DOCKER_RELEASE == 'true'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -71,7 +71,7 @@ jobs:
       # Build & Push
       # ---------------------------------------------------
       - name: Build & Push
-        if: steps.repo_check.outputs.TYPE != 'none'
+        if: steps.repo_check.outputs.RUN_DOCKER_RELEASE == 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
