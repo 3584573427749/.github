@@ -23,7 +23,7 @@ jobs:
       - name: Check if PHP CI should run
         id: repo_check
         run: |
-          if [ -f ".ci/run-phpunit" ]; then
+          if [ -f ".ci/php-service" ]; then
             echo "RUN_PHP_CI=true" >> $GITHUB_OUTPUT
             echo "PHP service repo detected → running PHP CI"
           else
@@ -60,10 +60,10 @@ jobs:
       - name: PHPUnit
         if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
         run: |
-          if [ -f ".ci/run-phpunit" ]; then
-            ./.ci/run-phpunit
+          if [ -f vendor/bin/phpunit ]; then
+            vendor/bin/phpunit
           else
-            echo "run-phpunit script missing, skipping."
+            echo "PHPUnit not installed, skipping."
           fi
 
       # ---------------------------------------------------
