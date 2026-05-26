@@ -1,8 +1,12 @@
 name: PHP CI
 
 on:
-  workflow_call: 
-
+  workflow_call:
+    inputs:
+      php-version:
+        required: false
+        type: string
+        default: '8.3'
 jobs:
   build:
     runs-on: ubuntu-latest
