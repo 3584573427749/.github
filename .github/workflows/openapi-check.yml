@@ -20,7 +20,7 @@ jobs:
       - name: Check if OpenAPI check should run
         id: repo_check
         run: |
-          if [ -f ".ci/run-phpunit" ] || [ -f ".ci/run-frontend-ci" ]; then
+          if [ -f ".ci/php-service" ] || [ -f ".ci/frontend" ]; then
             echo "RUN_OPENAPI=true" >> $GITHUB_OUTPUT
             echo "Service or frontend repo detected → running OpenAPI validation"
           else
