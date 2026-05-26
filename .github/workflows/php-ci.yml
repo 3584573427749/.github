@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # ---------------------------------------------------
       # Kontroll: är detta ett riktigt PHP service-repo?
@@ -93,9 +95,21 @@ jobs:
       # ---------------------------------------------------
       - name: Require VERSION bump
         if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
+        shell: bash
         run: |
-          if git diff --name-only HEAD^ HEAD | grep -E '\.php$|src/'; then
-            if ! git diff --name-only HEAD^ HEAD | grep -q "VERSION"; then
+          set -euo pipefail
+      
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch origin "${{ github.base_ref }}" --depth=1
+            DIFF_RANGE="origin/${{ github.base_ref }}...HEAD"
+          else
+            DIFF_RANGE="${{ github.event.before }}...${{ github.sha }}"
+          fi
+      
+          echo "Checking diff range: $DIFF_RANGE"
+      
+          if git diff --name-only "$DIFF_RANGE" | grep -E '(^src/|\.php$)'; then
+            if ! git diff --name-only "$DIFF_RANGE" | grep -q '^VERSION$'; then
               echo "::error::VERSION file must be updated when PHP source files change."
               exit 1
             fi
