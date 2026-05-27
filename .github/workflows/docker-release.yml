@@ -15,6 +15,14 @@ jobs:
       - name: Checkout target repository
         uses: actions/checkout@v4
 
+      - name: Validate Docker deployment marker
+        shell: bash
+        run: |
+          if [ ! -f .ci/dockerdeploy ]; then
+            echo "::error::.ci/dockerdeploy is required for Docker release. Repository is not enabled for Docker deployment."
+            exit 1
+          fi
+
       - name: Validate VERSION file
         id: version
         shell: bash
