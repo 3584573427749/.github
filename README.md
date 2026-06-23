@@ -20,7 +20,7 @@ Plattformen består av:
 
 ### Autentisering
 - **Auth-service**  
-  Passwordless login (magic-link, OTP, TOTP), JWT-tokenhantering, roller/behörigheter.
+  Passwordless login (magic-link, OTP, TOTP?), JWT-tokenhantering, roller/behörigheter.
 
 ### Gateway
 - **Gateway-service**  
@@ -31,7 +31,7 @@ Plattformen består av:
 
 ### Tidsrapportering & Resor
 - **Time-service**  
-  Arbetspass, versionerad timlön, traktamente, milersättning, attestflöden, export.
+  Arbetspass, versionerad timlön, traktamente, milersättning, attestflöden, export till externt lönesystem.
 
 ### Träningsgrupper
 - **Group-service**  
@@ -93,6 +93,7 @@ Organisationen innehåller följande repos:
 - Actions är tunna  
 - All logik i Services  
 - Repositories via Doctrine DBAL
+- Migrering av databasen via Phinx
 
 ### OpenAPI som kontrakt
 - Varje tjänst har en egen `openapi.yaml`  
