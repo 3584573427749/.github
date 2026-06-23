@@ -1,0 +1,105 @@
+name: Security Scan
+
+on:
+  workflow_call: 
+  
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # -----------------------------------------
+      # Identifiera repo-typ via .ci-flaggor
+      # -----------------------------------------
+      - name: Detect repo type
+        id: repo_type
+        run: |
+          if [ -f ".ci/php-service" ]; then
+            echo "TYPE=php-service" >> $GITHUB_OUTPUT
+            echo "Detected PHP service repo"
+
+          elif [ -f ".ci/frontend" ]; then
+            echo "TYPE=frontend" >> $GITHUB_OUTPUT
+            echo "Detected frontend repo"
+
+          else
+            echo "TYPE=none" >> $GITHUB_OUTPUT
+            echo "Template or unsupported repo → skipping"
+          fi
+
+      # -----------------------------------------
+      # PHP Backend → Composer audit
+      # -----------------------------------------
+      - name: Setup PHP
+        if: steps.repo_type.outputs.TYPE == 'php-service'
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          tools: composer
+          coverage: none
+      
+      - name: Install PHP dependencies
+        if: steps.repo_type.outputs.TYPE == 'php-service'
+        run: |
+          if [ -f composer.json ]; then
+            composer install --no-interaction --prefer-dist
+          else
+            echo "No composer.json found, skipping."
+          fi
+  
+      - name: Composer Audit
+        if: steps.repo_type.outputs.TYPE == 'php-service'
+        run: |
+          if [ -f composer.json ]; then
+            echo "Running composer audit..."
+            composer audit
+          fi
+
+      # -----------------------------------------
+      # Frontend → npm audit
+      # -----------------------------------------
+      - name: Setup Node.js
+        if: steps.repo_type.outputs.TYPE == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install frontend dependencies
+        if: steps.repo_type.outputs.TYPE == 'frontend'
+        run: |
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
+          else
+            echo "No package.json found, skipping."
+          fi
+      
+      - name: Node security audit
+        if: steps.repo_type.outputs.TYPE == 'frontend'
+        run: |
+          if [ -f package.json ]; then
+            echo "Running npm audit..."
+
+            if [ -f package-lock.json ]; then
+              npm ci || true
+            else
+              npm install || true
+            fi
+
+            npm audit --audit-level=high
+          else
+            echo "No package.json found, skipping."
+          fi
+
+      # -----------------------------------------
+      # Skip info
+      # -----------------------------------------
+      - name: Skip message
+        if: steps.repo_type.outputs.TYPE == 'none'
+        run: echo "Security scan skipped (template repo)."
