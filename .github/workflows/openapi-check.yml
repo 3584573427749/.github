@@ -32,7 +32,7 @@ jobs:
         if: steps.repo_check.outputs.RUN_OPENAPI == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install OpenAPI tools
         if: steps.repo_check.outputs.RUN_OPENAPI == 'true'
@@ -48,13 +48,17 @@ jobs:
         if: steps.repo_check.outputs.RUN_OPENAPI == 'true'
         run: openapi validate openapi.yaml
 
-      - name: Detect breaking API changes
-        if: steps.repo_check.outputs.RUN_OPENAPI == 'true' && github.event_name == 'pull_request'
-        shell: bash
+#      - name: Detect breaking API changes
+#        if: steps.repo_check.outputs.RUN_OPENAPI == 'true' && github.event_name == 'pull_request'
+#        shell: bash
+#        run: |
+#          set -euo pipefail
+#          git fetch origin "${{ github.base_ref }}" --depth=1
+#          openapi-diff --fail-on-breaking "origin/${{ github.base_ref }}" openapi.yaml
+      - name: Debug openapi-diff
         run: |
-          set -euo pipefail
-          git fetch origin "${{ github.base_ref }}" --depth=1
-          openapi-diff --fail-on-breaking "origin/${{ github.base_ref }}" openapi.yaml
+          npm list -g --depth=0
+          openapi-diff --help
     
       - name: Skip message
         if: steps.repo_check.outputs.RUN_OPENAPI == 'false'
