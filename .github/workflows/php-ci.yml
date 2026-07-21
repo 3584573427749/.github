@@ -38,7 +38,7 @@ jobs:
         if: steps.repo_check.outputs.RUN_PHP_CI == 'true'
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           tools: composer
           coverage: none
 
